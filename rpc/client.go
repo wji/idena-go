@@ -81,6 +81,7 @@ type BatchElem struct {
 type jsonrpcMessage struct {
 	Version string          `json:"jsonrpc"`
 	ID      json.RawMessage `json:"id,omitempty"`
+	Key     string          `json:"key,omitempty"`
 	Method  string          `json:"method,omitempty"`
 	Params  json.RawMessage `json:"params,omitempty"`
 	Error   *jsonError      `json:"error,omitempty"`
@@ -106,6 +107,7 @@ func (msg *jsonrpcMessage) String() string {
 
 // Client represents a connection to an RPC server.
 type Client struct {
+	apiKey      string
 	idCounter   uint32
 	connectFunc func(ctx context.Context) (net.Conn, error)
 	isHTTP      bool
@@ -211,6 +213,10 @@ func newClient(initctx context.Context, connectFunc func(context.Context) (net.C
 func (c *Client) nextID() json.RawMessage {
 	id := atomic.AddUint32(&c.idCounter, 1)
 	return []byte(strconv.FormatUint(uint64(id), 10))
+}
+
+func (c *Client) SetApiKey(apiKey string) {
+	c.apiKey = apiKey
 }
 
 // SupportedModules calls the rpc_modules method, retrieving the list of
@@ -413,7 +419,7 @@ func (c *Client) newMessage(method string, paramsIn ...interface{}) (*jsonrpcMes
 	if err != nil {
 		return nil, err
 	}
-	return &jsonrpcMessage{Version: "2.0", ID: c.nextID(), Method: method, Params: params}, nil
+	return &jsonrpcMessage{Version: "2.0", ID: c.nextID(), Key: c.apiKey, Method: method, Params: params}, nil
 }
 
 // send registers op with the dispatch loop, then sends msg on the connection.
