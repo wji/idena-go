@@ -278,6 +278,15 @@ func (api *ContractApi) signIfNeeded(from common.Address, tx *types.Transaction,
 	return api.baseApi.signTransaction(from, tx, nil)
 }
 
+func (api *ContractApi) GetContractCode(contract common.Address) (string, error) {
+	state := api.baseApi.getReadonlyAppState()
+	code := state.State.GetContractCode(contract)
+	if code == nil {
+		return "", errors.New("contract code not found")
+	}
+	return hexutil.Encode(code), nil
+}
+
 func (api *ContractApi) EstimateDeploy(args DeployArgs) (*TxReceipt, error) {
 	appState := api.baseApi.getAppStateForCheck()
 	vm := vm.NewVmImpl(appState, api.bc, api.bc.Head, nil, api.bc.Config())
